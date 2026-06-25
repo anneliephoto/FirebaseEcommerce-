@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useDispatch } from "react-redux";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -13,23 +12,20 @@ import {
   Alert,
 } from "react-bootstrap";
 import { addToCart } from "../store/cartSlice";
+import { fetchProducts } from "../services/firestore";
 
 const FALLBACK_IMAGE = "https://via.placeholder.com/300x300?text=No+Image";
 
-function fetchAllProducts() {
-  return axios.get("https://fakestoreapi.com/products").then((res) => res.data);
-}
-
 function fetchCategories() {
-  return axios
-    .get("https://fakestoreapi.com/products/categories")
-    .then((res) => res.data);
+  return fetchProducts().then((products = []) => [
+    ...new Set(products.map((product) => product.category).filter(Boolean)),
+  ]);
 }
 
 function fetchProductsByCategory(category) {
-  return axios
-    .get(`https://fakestoreapi.com/products/category/${encodeURIComponent(category)}`)
-    .then((res) => res.data);
+  return fetchProducts().then((products = []) =>
+    products.filter((product) => product.category === category),
+  );
 }
 
 export default function Home() {
@@ -58,7 +54,7 @@ export default function Home() {
         : ["products", "category", selectedCategory],
     queryFn: () =>
       selectedCategory === "all"
-        ? fetchAllProducts()
+        ? fetchProducts()
         : fetchProductsByCategory(selectedCategory),
   });
 
@@ -67,9 +63,9 @@ export default function Home() {
       <Container className="py-5">
         <Row className="justify-content-center mb-4">
           <Col lg={10}>
-            <h1 className="mb-3">FakeStore Product Catalog</h1>
+            <h1 className="mb-3">Luxecommerce Collection</h1>
             <p className="mb-3">
-              Browse products by category and add items to your shopping cart.
+              Browse products stored in Firestore and add them to your shopping cart.
             </p>
 
             <Form.Group className="mb-4" controlId="categoryFilter">
@@ -136,10 +132,6 @@ export default function Home() {
                         </Card.Text>
                         <Card.Text className="mb-1">
                           <strong>Price:</strong> ${Number(product.price || 0).toFixed(2)}
-                        </Card.Text>
-                        <Card.Text className="mb-2">
-                          <strong>Rate:</strong>{" "}
-                          {product.rating?.rate ?? "N/A"}
                         </Card.Text>
                         <Card.Text className="small text-muted mb-3">
                           {product.description}

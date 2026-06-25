@@ -2,15 +2,22 @@ import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { Container, Card, Button, Alert, Table } from "react-bootstrap";
+import { doc, setDoc } from "firebase/firestore";
 import { removeFromCart, clearCart, updateQuantity } from "../store/cartSlice";
+import { createOrder } from "../services/firestore";
+import { useAuth } from "../context/AuthContext";
+import { db } from "../firebase";
 
 const FALLBACK_IMAGE = "https://via.placeholder.com/80x80?text=No+Image";
 
 export default function Cart() {
 	const navigate = useNavigate();
 	const dispatch = useDispatch();
+	const { user, profile } = useAuth();
 	const items = useSelector((state) => state.cart.items);
 	const [checkoutSuccess, setCheckoutSuccess] = React.useState(false);
+	const [checkoutError, setCheckoutError] = React.useState("");
+	const [checkingOut, setCheckingOut] = React.useState(false);
 
 	const totalItems = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
 
@@ -19,9 +26,56 @@ export default function Cart() {
 		0,
 	);
 
-	function handleCheckout() {
-		dispatch(clearCart());
-		setCheckoutSuccess(true);
+	async function handleCheckout() {
+		if (!user) {
+			navigate("/auth");
+			return;
+		}
+
+		if (items.length === 0) {
+			setCheckoutError("Your cart is empty.");
+			return;
+		}
+
+		setCheckingOut(true);
+		setCheckoutError("");
+
+		try {
+			const orderItems = items.map((item) => ({
+				id: item.id,
+				title: item.title,
+				quantity: item.quantity || 1,
+				price: item.price || 0,
+				image: item.image,
+			}));
+
+			if (profile?.address) {
+				await setDoc(
+					doc(db, "users", user.uid),
+					{
+						address: profile.address,
+						updatedAt: new Date(),
+					},
+					{ merge: true },
+				);
+			}
+
+			await createOrder({
+				userId: user.uid,
+				userName: profile?.displayName || user.displayName || user.email,
+				userEmail: user.email,
+				address: profile?.address || "",
+				items: orderItems,
+				total: total,
+			});
+
+			dispatch(clearCart());
+			setCheckoutSuccess(true);
+		} catch (error) {
+			setCheckoutError(error.message || "Failed to place order.");
+		} finally {
+			setCheckingOut(false);
+		}
 	}
 
 	return (
@@ -34,10 +88,10 @@ export default function Cart() {
 			</div>
 
 			{checkoutSuccess && (
-				<Alert variant="success">
-					Checkout complete. Your cart has been cleared.
-				</Alert>
+				<Alert variant="success">Checkout complete.</Alert>
 			)}
+
+			{checkoutError && <Alert variant="danger">{checkoutError}</Alert>}
 
 			{items.length === 0 ? (
 				<Alert variant="info">Your cart is empty.</Alert>
@@ -138,8 +192,8 @@ export default function Cart() {
 						</div>
 
 						<div className="d-flex justify-content-end mt-3">
-							<Button variant="primary" onClick={handleCheckout}>
-								Checkout
+							<Button variant="primary" onClick={handleCheckout} disabled={checkingOut}>
+								{checkingOut ? "Placing Order..." : "Checkout"}
 							</Button>
 						</div>
 					</Card.Body>

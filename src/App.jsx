@@ -13,10 +13,15 @@ import ProductDetails from "./pages/ProductDetails";
 import AddProduct from "./pages/AddProduct";
 import EditProduct from "./pages/EditProduct";
 import Cart from "./pages/Cart";
+import Orders from "./pages/Orders";
+import Profile from "./pages/Profile";
+import AuthPage from "./pages/AuthPage";
+import { useAuth } from "./context/AuthContext";
 import "./App.css";
 
 function AppLayout() {
   const items = useSelector((state) => state.cart.items);
+  const { user, logout } = useAuth();
 
   const count = items.reduce(
     (total, item) => total + (item.quantity || 0),
@@ -35,7 +40,7 @@ function AppLayout() {
             to="/"
             className="brand-modern"
           >
-            ✨ FirebaseEcommerce
+            <span className="brand-letter">L</span>uxEcommerce
           </Navbar.Brand>
 
           <Navbar.Toggle aria-controls="main-nav" />
@@ -74,6 +79,29 @@ function AppLayout() {
                 Cart{" "}
                 <span className="cart-count-modern">({count})</span>
               </Nav.Link>
+
+              {user ? (
+                <>
+                  <Nav.Link as={Link} to="/orders" className="nav-link-modern">
+                    Orders
+                  </Nav.Link>
+                  <Nav.Link as={Link} to="/profile" className="nav-link-modern">
+                    Profile
+                  </Nav.Link>
+                  <Nav.Link as="button" className="nav-link-modern" onClick={() => logout()}>
+                    Logout
+                  </Nav.Link>
+                </>
+              ) : (
+                <>
+                  <Nav.Link as={Link} to="/auth" className="nav-link-modern">
+                    Login
+                  </Nav.Link>
+                  <Nav.Link as={Link} to="/profile" className="nav-link-modern">
+                    Profile
+                  </Nav.Link>
+                </>
+              )}
             </Nav>
           </Navbar.Collapse>
         </RBContainer>
@@ -95,6 +123,9 @@ const router = createHashRouter([
       { path: "products/:id", element: <ProductDetails /> },
       { path: "products/:id/edit", element: <EditProduct /> },
       { path: "cart", element: <Cart /> },
+      { path: "orders", element: <Orders /> },
+      { path: "profile", element: <Profile /> },
+      { path: "auth", element: <AuthPage /> },
     ],
   },
 ]);

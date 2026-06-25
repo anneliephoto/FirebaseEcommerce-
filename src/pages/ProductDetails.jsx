@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import axios from "axios";
 import { Container, Card, Button, Spinner, Alert } from "react-bootstrap";
 import ConfirmModal from "../components/ConfirmModal";
 import { addToCart } from "../store/cartSlice";
+import { deleteProduct, fetchProductById } from "../services/firestore";
 
 const FALLBACK_IMAGE = "https://via.placeholder.com/300x300?text=No+Image";
 
@@ -23,11 +23,10 @@ export default function ProductDetails() {
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    axios
-      .get(`https://fakestoreapi.com/products/${id}`)
-      .then((res) => {
+    fetchProductById(id)
+      .then((item) => {
         if (!mounted) return;
-        setProduct(res.data);
+        setProduct(item);
       })
       .catch((err) => {
         if (!mounted) return;
@@ -160,14 +159,14 @@ export default function ProductDetails() {
         show={showDeleteModal}
         title={`Delete product ${product.title}`}
         body={
-          "Are you sure you want to delete this product? This will call the API DELETE endpoint."
+          "Are you sure you want to delete this product from Firestore?"
         }
         onCancel={() => setShowDeleteModal(false)}
         onConfirm={async () => {
           setDeleteError(null);
           setDeleting(true);
           try {
-            await axios.delete(`https://fakestoreapi.com/products/${id}`);
+            await deleteProduct(id);
             setShowDeleteModal(false);
             navigate("/products");
           } catch (err) {

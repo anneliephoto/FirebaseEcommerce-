@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
 import { Container, Form, Button, Alert, Spinner } from "react-bootstrap";
+import { fetchProductById, updateProduct } from "../services/firestore";
 
 export default function EditProduct() {
   const { id } = useParams();
@@ -11,6 +11,7 @@ export default function EditProduct() {
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -19,15 +20,18 @@ export default function EditProduct() {
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    axios
-      .get(`https://fakestoreapi.com/products/${id}`)
-      .then((res) => {
+    fetchProductById(id)
+      .then((product) => {
         if (!mounted) return;
-        const p = res.data || {};
-        setTitle(p.title || "");
-        setPrice(p.price != null ? String(p.price) : "");
-        setDescription(p.description || "");
-        setCategory(p.category || "");
+        if (!product) {
+          setError("Product not found.");
+          return;
+        }
+        setTitle(product.title || "");
+        setPrice(product.price != null ? String(product.price) : "");
+        setDescription(product.description || "");
+        setCategory(product.category || "");
+        setImageUrl(product.image || "");
       })
       .catch((err) => {
         if (!mounted) return;
@@ -58,16 +62,13 @@ export default function EditProduct() {
       price: parseFloat(price),
       description: description.trim(),
       category: category.trim(),
+      image: imageUrl.trim() || "https://via.placeholder.com/150",
     };
 
     setSaving(true);
     try {
-      const res = await axios.put(
-        `https://fakestoreapi.com/products/${id}`,
-        payload,
-      );
-      setSuccess(`Product updated (id: ${res.data.id || id}).`);
-      // optionally navigate back after a short delay
+      await updateProduct(id, payload);
+      setSuccess(`Product updated (id: ${id}).`);
       setTimeout(() => navigate(`/products/${id}`), 1000);
     } catch (err) {
       setError(err.message || "Failed to update product");
@@ -130,6 +131,16 @@ export default function EditProduct() {
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             placeholder="Category"
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3" controlId="imageUrl">
+          <Form.Label>Image URL</Form.Label>
+          <Form.Control
+            type="url"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            placeholder="https://example.com/image.jpg"
           />
         </Form.Group>
 

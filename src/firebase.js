@@ -4,14 +4,18 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA_VkD10BGFzIP0eGJD4dr4u5oFXWe4i50",
-  authDomain: "fir-ecommerce-4314f.firebaseapp.com",
-  projectId: "fir-ecommerce-4314f",
-  storageBucket: "fir-ecommerce-4314f.firebasestorage.app",
-  messagingSenderId: "1013637491036",
-  appId: "1:1013637491036:web:da37eaaab1ee7956403999",
-  measurementId: "G-50D5YZ879K",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "",
 };
+
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+  console.warn("Firebase config is incomplete. Create a .env file with your Vite Firebase values.");
+}
 
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);

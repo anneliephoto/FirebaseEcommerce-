@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import {
   Container,
@@ -11,6 +10,7 @@ import {
   Alert,
 } from "react-bootstrap";
 import ConfirmModal from "../components/ConfirmModal";
+import { deleteProduct, fetchProducts } from "../services/firestore";
 
 export default function ProductListing() {
   const [products, setProducts] = useState([]);
@@ -25,11 +25,10 @@ export default function ProductListing() {
   useEffect(() => {
     let mounted = true;
 
-    axios
-      .get("https://fakestoreapi.com/products")
-      .then((res) => {
+    fetchProducts()
+      .then((items) => {
         if (!mounted) return;
-        setProducts(res.data || []);
+        setProducts(items || []);
       })
       .catch((err) => {
         if (!mounted) return;
@@ -70,14 +69,25 @@ export default function ProductListing() {
           {deleteError}
         </Alert>
       )}
-      <h2 className="mb-4">Product Listing</h2>
+      <h2 className="mb-4">The Collection</h2>
       {products.length === 0 && (
         <Alert variant="info">No products available.</Alert>
       )}
       <Row className="g-4">
         {products.map((p) => (
           <Col key={p.id} xs={12} sm={6} md={4} lg={3}>
-            <Card className="h-100 shadow-sm">
+            <Card
+              className="h-100 shadow-sm product-list-card"
+              onClick={() => navigate(`/products/${p.id}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  navigate(`/products/${p.id}`);
+                }
+              }}
+            >
               <div
                 className="product-image-container d-flex align-items-center justify-content-center"
                 style={{ height: 200, overflow: "hidden" }}
@@ -105,14 +115,18 @@ export default function ProductListing() {
                       size="sm"
                       variant="outline-secondary"
                       className="me-2"
-                      onClick={() => navigate(`/products/${p.id}`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/products/${p.id}`);
+                      }}
                     >
                       View
                     </Button>
                     <Button
                       size="sm"
                       variant="danger"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setDeleteError(null);
                         setSelectedDelete(p);
                         setShowDeleteModal(true);
@@ -140,7 +154,7 @@ export default function ProductListing() {
             : "Delete product"
         }
         body={
-          "Are you sure you want to delete this product? This will call the API DELETE endpoint."
+          "Are you sure you want to delete this product from Firestore?"
         }
         onCancel={() => {
           setShowDeleteModal(false);
@@ -152,7 +166,7 @@ export default function ProductListing() {
           setDeleteError(null);
           setDeletingIds((s) => [...s, id]);
           try {
-            await axios.delete(`https://fakestoreapi.com/products/${id}`);
+            await deleteProduct(id);
             setProducts((prev) => prev.filter((x) => x.id !== id));
             setShowDeleteModal(false);
             setSelectedDelete(null);

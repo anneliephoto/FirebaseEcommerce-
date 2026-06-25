@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { Container, Form, Button, Alert, Spinner } from "react-bootstrap";
+import { createProduct } from "../services/firestore";
 
 export default function AddProduct() {
   const navigate = useNavigate();
@@ -9,6 +9,7 @@ export default function AddProduct() {
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -28,20 +29,18 @@ export default function AddProduct() {
       price: parseFloat(price),
       description: description.trim(),
       category: category.trim(),
-      image: "https://via.placeholder.com/150",
+      image: imageUrl.trim() || "https://via.placeholder.com/150",
     };
 
     setLoading(true);
     try {
-      const res = await axios.post(
-        "https://fakestoreapi.com/products",
-        payload,
-      );
-      setSuccess(`Product created (id: ${res.data.id || "n/a"}).`);
+      const createdProduct = await createProduct(payload);
+      setSuccess(`Product created (id: ${createdProduct.id || "n/a"}).`);
       setTitle("");
       setPrice("");
       setDescription("");
       setCategory("");
+      setImageUrl("");
     } catch (err) {
       setError(err.message || "Failed to create product");
     } finally {
@@ -96,6 +95,16 @@ export default function AddProduct() {
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             placeholder="Category"
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3" controlId="imageUrl">
+          <Form.Label>Image URL</Form.Label>
+          <Form.Control
+            type="url"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            placeholder="https://example.com/image.jpg"
           />
         </Form.Group>
 
